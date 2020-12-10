@@ -1,48 +1,36 @@
 class ChainCounter
-  attr_reader :adapters
-
   def initialize(input_filename)
     @chain_hash = {}
     input_file = File.open(input_filename, 'r')
     @adapters = input_file.readlines.map { |rating| rating.chomp.to_i }.sort
     input_file.close
     @adapters.unshift(0)
-    @phone_rating = @adapters.last + 3
-    @adapters.push(@phone_rating)
+    @adapters.push(@adapters.last + 3)
   end
 
-  def get_diff_count(n)
+  def get_diff_count(diff)
     (1...@adapters.size).reduce(0) do |count, index|
-      if @adapters[index] - @adapters[index - 1] == n
-        count + 1
-      else
-        count
-      end
+      @adapters[index] - @adapters[index - 1] == diff ? count + 1 : count
     end
   end
 
   def count_chains
-    count(0, @adapters.slice(1, @adapters.size - 1))
+    count(0)
   end
 
   private
 
-  def count(last_rating, adapters)
-    return 1 if adapters.size == 1
+  def count(last_rating)
+    return 1 if @adapters.size - last_rating == 2
 
-    valid_adapter_indices = adapters.each_index.select do |index|
-      valid_next_adapter?(last_rating, adapters[index])
+    index = last_rating + 1
+    total_count = 0
+    while valid_next_adapter?(@adapters[last_rating], @adapters[index])
+      @chain_hash[index] = count(index) unless @chain_hash.key?(index)
+      total_count += @chain_hash[index]
+      index += 1
     end
-    valid_adapter_indices.reduce(0) do |count, index|
-      remaining_adapters = adapters.slice(index + 1, adapters.size - (index + 1))
-      if @chain_hash.has_key?(remaining_adapters)
-        count + @chain_hash[remaining_adapters]
-      else
-        result = count(adapters[index], remaining_adapters)
-        @chain_hash[remaining_adapters] = result
-        count + result
-      end
-    end
+    total_count
   end
 
   def valid_next_adapter?(curr_adapter, next_adapter)
